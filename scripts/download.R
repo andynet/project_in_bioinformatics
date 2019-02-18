@@ -1,22 +1,34 @@
-# options(echo=TRUE) # if you want see commands in output file
+library(recount, quietly = TRUE)
+library(argparser, quietly=TRUE)
 
-library('recount')
+# Create a parser
+p <- arg_parser("Download recount data")
 
-args <- commandArgs(trailingOnly = TRUE)
-print(args)
+# Add command line arguments
+p <- add_argument(p, "--data_dir", help = "data dir")
+p <- add_argument(p, "--study", help = "TCGA|GTEx")
+p <- add_argument(p, "--type", help = "gene|exon")
 
-if (length(args) != 2) {
-    print("Usage: \ndownload.R SRP012682 GTEx \ndownload.R TCGA TCGA")
-    quit(save = "no")
+# Parse the command line arguments
+argv <- parse_args(p)
+
+if (argv$study == "TCGA") {
+    accession <- "TCGA"
+} else if (argv$study == "GTEx") {
+    accession <- "SRP012682"
+} else {
+    print("Unexpected branch. Only studies TCGA and GTEx are supported.")
+    quit(save = "no", status = 1)
 }
 
-accession <- args[1]    # SRP012682 or TCGA
-name <- args[2]     # GTEx or TCGA
-
-# download
-types <- c("rse-gene", "rse-exon")
-
-for (type in types) {
-    download_study(accession, type = type, name)
-    Sys.sleep(3)
+if (argv$type == "gene") {
+    type = "rse-gene"
+} else if (argv$type == "exon") {
+    type = "rse-exon"
+} else {
+    print("Unexpected branch. Only types gene and exon are supported.")
+    quit(save = "no", status = 1)
 }
+
+outdir <- paste(argv$data_dir, '/', argv$study, sep = "")
+download_study(project = accession, type = type, outdir = outdir)

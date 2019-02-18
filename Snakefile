@@ -7,7 +7,7 @@ wildcard_constraints:
 
 rule main:
     input:
-        expand("{data_dir}/{study}/{size}/rse_{type}.counts.tsv",
+        expand("{data_dir}/{study}/{size}/rse_{type}.counts.scaled.tsv",
                 data_dir = config['data_dir'],
                 study = config['study'],
                 type = config['type'],
@@ -53,23 +53,23 @@ rule normalize:
         "envs/py_data.yaml",
     shell:
         """
-        python3 scripts/normalize.py    \
-            -in {input}                 \
-            -out {output}
+        python3 scripts/normalize.py        \
+            -i {input}                      \
+            -o {output}
         """
 
 rule scale:
     input:
-        "{data_dir}/{study}/{size}/counts_norm_rse_{type}.tsv",
+        "{data_dir}/{study}/{size}/rse_{type}.counts.norm.tsv",
     output:
-        "{data_dir}/{study}/{size}/counts_norm_scaled_rse_{type}.tsv",
+        "{data_dir}/{study}/{size}/rse_{type}.counts.scaled.tsv",
     conda:
         "envs/py_data.yaml",
     shell:
         """
-        python3 scripts/scale.py    \
-            -in {input}             \
-            -out {output}
+        python3 scripts/scale.py            \
+            -i {input}                      \
+            -o {output}
         """
 
 # rule filter:

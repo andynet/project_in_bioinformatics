@@ -7,7 +7,7 @@ wildcard_constraints:
 
 rule main:
     input:
-        expand("{data_dir}/{study}/{size}/rse_{type}.counts.scaled.tsv",
+        expand("{data_dir}/{study}/{size}/rse_{type}.df.tsv",
                 data_dir = config['data_dir'],
                 study = config['study'],
                 type = config['type'],
@@ -72,16 +72,22 @@ rule scale:
             -o {output}
         """
 
-# rule filter:
-#     input:
-#         "",
-#     output:
-#         "",
-#     shell:
-#         """
-#         # TODO: python script
-#         """
-#
+rule filter:
+    input:
+        "{data_dir}/{study}/{size}/rse_{type}.counts.scaled.tsv",
+        "{data_dir}/{study}/{size}/rse_{type}.samples.tsv",
+    output:
+        "{data_dir}/{study}/{size}/rse_{type}.df.tsv",
+    conda:
+        "envs/py_data.yaml",
+    shell:
+        """
+        python3 scripts/filter.py           \
+            -c {input[0]}                   \
+            -s {input[1]}                   \
+            -o {output}
+        """
+
 # rule neural_network:
 #     input:
 #     output:

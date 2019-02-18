@@ -1,4 +1,3 @@
-#!/home/andyb/miniconda3/envs/pib/bin/Rscript
 # options(echo=TRUE) # if you want see commands in output file
 
 library('recount')

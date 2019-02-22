@@ -1,7 +1,7 @@
-data_dir: '/home/andrej/ActiveProjects/project_in_bioinformatics/data'
+data_dir: '/home/andyb/project_in_bioinformatics/data'
 # study: ["TCGA", "GTEx"]
-study: ['GTEx']
+study: ['GTEx', 'TCGA']
 # type: ["gene", "exon"]
 type: ['gene']
 # size: ["full", "subset"]
-size: ["subset"]
+size: ["subset", 'full']

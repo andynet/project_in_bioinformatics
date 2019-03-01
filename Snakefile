@@ -7,7 +7,7 @@ wildcard_constraints:
 
 rule main:
     input:
-        expand("{data_dir}/{study}/{size}/rse_{type}.df.tsv",
+        expand("{data_dir}/{study}/{size}/rse_{type}.counts.desc",
                 data_dir = config['data_dir'],
                 study = config['study'],
                 type = config['type'],
@@ -42,6 +42,20 @@ rule extract:
             --study {wildcards.study}           \
             --type {wildcards.type}             \
             --size {wildcards.size}
+        """
+
+rule describe:
+    input:
+        "{data_dir}/{study}/{size}/rse_{type}.counts.tsv",
+    output:
+        "{data_dir}/{study}/{size}/rse_{type}.counts.desc",
+    conda:
+        "envs/py_data.yaml",
+    shell:
+        """
+        python3 scripts/describe.py         \
+            -i {input}                      \
+            -o {output}
         """
 
 rule normalize:

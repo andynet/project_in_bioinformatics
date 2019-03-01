@@ -1,6 +1,6 @@
 data_dir: '/home/andyb/project_in_bioinformatics/data'
 # study: ["TCGA", "GTEx"]
-study: ['GTEx', 'TCGA']
+study: ['TCGA', 'GTEx']
 # type: ["gene", "exon"]
 type: ['gene']
 # size: ["full", "subset"]

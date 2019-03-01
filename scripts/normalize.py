@@ -1,5 +1,5 @@
-import statistics as st
 import pandas as pd
+import numpy as np
 import argparse
 import math
 
@@ -13,10 +13,11 @@ def main():
 
     df = pd.DataFrame(pd.read_csv(args.input, sep='\t', header=0, index_col=0))
 
-    df_med = df.apply(lambda x: x / st.median(x))
-    df_log = df_med.applymap(lambda x: math.log(1 + x))
-
-    df_log.to_csv(args.output, sep='\t')
+    df = df.loc[(df!=0).any(axis=1)]    # drop rows with just 0
+    df = df.apply(lambda x: x / (np.quantile(x, 0.75)), axis=0)
+    df = np.log(df + 1)
+    
+    df.to_csv(args.output, sep='\t')
 
 
 if __name__ == '__main__':

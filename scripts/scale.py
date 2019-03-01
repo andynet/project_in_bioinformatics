@@ -1,5 +1,5 @@
-import statistics as st
 import pandas as pd
+import numpy as np
 import argparse
 
 
@@ -12,10 +12,9 @@ def main():
 
     df = pd.DataFrame(pd.read_csv(args.input, sep='\t', header=0, index_col=0))
 
-    df_scl = df.apply(lambda x: ((x - st.mean(x)) / st.stdev(x)), axis=1)
-    df_drp = df_scl.dropna(axis=0, how='any')
+    df = df.apply(lambda x: ((x - np.mean(x)) / np.std(x)), axis=1)
 
-    df_drp.to_csv(args.output, sep='\t')
+    df.to_csv(args.output, sep='\t')
 
 
 if __name__ == '__main__':

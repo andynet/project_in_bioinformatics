@@ -11,25 +11,22 @@ p <- add_argument(p, "--type", help = "gene|exon")
 p <- add_argument(p, "--size", help = "full|subset")
 
 # Parse the command line arguments
-args <- c('--data_dir', '/home/andrej/ActiveProjects/project_in_bioinformatics/data', 
-          '--study', 'GTEx',
-          '--type', 'gene',
-          '--size', 'subset')
-argv <- parse_args(p, argv = args)
+argv <- parse_args(p)
 
 rdata_file <- paste(argv$data_dir, '/', argv$study, '/rse_', argv$type, '.Rdata', sep = '')
+print(rdata_file)
 load(rdata_file)
 
 subset_size <- 100
 
 if (argv$type == "gene" & argv$size == "subset") {
-    rse <- scale_counts(rse_gene[1:subset_size, 1:subset_size])
+    rse <- read_counts(rse_gene[1:subset_size, 1:subset_size])
 } else if (argv$type == "gene" & argv$size == "full") {
-    rse <- scale_counts(rse_gene)
+    rse <- read_counts(rse_gene)
 } else if (argv$type == "exon" & argv$size == "subset") {
-    rse <- scale_counts(rse_exon[1:subset_size, 1:subset_size])
+    rse <- read_counts(rse_exon[1:subset_size, 1:subset_size])
 } else if (argv$type == "exon" & argv$size == "full") {
-    rse <- scale_counts(rse_exon)
+    rse <- read_counts(rse_exon)
 } else {
     print("Unexpected branch.")
     quit(save = "no", status = 1)

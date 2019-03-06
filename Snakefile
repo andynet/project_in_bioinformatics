@@ -7,7 +7,7 @@ wildcard_constraints:
 
 rule main:
     input:
-        expand("{data_dir}/{study}/{size}/rse_{type}.counts.desc",
+        expand("{data_dir}/{study}/{size}/rse_{type}.df.tsv",
                 data_dir = config['data_dir'],
                 study = config['study'],
                 type = config['type'],

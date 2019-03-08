@@ -30,5 +30,5 @@ if (argv$type == "gene") {
     quit(save = "no", status = 1)
 }
 
-outdir <- paste(argv$data_dir, '/', argv$study, sep = "")
+outdir <- paste(argv$data_dir, '/', argv$type, '/', argv$study, sep = "")
 download_study(project = accession, type = type, outdir = outdir)

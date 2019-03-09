@@ -130,6 +130,22 @@ rule filter_naive:
             --output {output}
         """
 
+rule filter_pca:
+    input:
+        "{data_dir}/{type}/{size}/GTEx/scaled/counts.tsv",
+        "{data_dir}/{type}/{size}/TCGA/scaled/counts.tsv",
+    output:
+        "{data_dir}/{type}/{size}/filtered/pca/counts.tsv",
+    conda:
+        "envs/py_data.yaml",
+    shell:
+        """
+        python3 scripts/filter_pca.py       \
+            --gtex_counts {input[0]}        \
+            --tcga_counts {input[1]}        \
+            --output {output}
+        """
+
 # rule neural_network:
 #     input:
 #     output:

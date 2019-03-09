@@ -146,6 +146,19 @@ rule filter_pca:
             --output {output}
         """
 
+rule create_dummies:
+    input:
+        "{data_dir}/{type}/{size}/{study}/raw/samples.tsv",
+    output:
+        "{data_dir}/{type}/{size}/{study}/dummy/samples.tsv",
+    conda:
+        "envs/py_data.yaml",
+    shell:
+        """
+        python3 scripts/create_dummies.py   \
+            -i {input}                      \
+            -o {output}
+        """
 # rule neural_network:
 #     input:
 #     output:

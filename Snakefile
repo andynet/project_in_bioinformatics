@@ -112,21 +112,23 @@ rule scale:
             -o {output}
         """
 
-# rule filter:
-#     input:
-#         "{data_dir}/{study}/{size}/rse_{type}.counts.scaled.tsv",
-#         "{data_dir}/{study}/{size}/rse_{type}.samples.tsv",
-#     output:
-#         "{data_dir}/{study}/{size}/rse_{type}.df.tsv",
-#     conda:
-#         "envs/py_data.yaml",
-#     shell:
-#         """
-#         python3 scripts/filter.py           \
-#             -c {input[0]}                   \
-#             -s {input[1]}                   \
-#             -o {output}
-#         """
+rule filter_naive:
+    input:
+        "{data_dir}/{type}/{size}/GTEx/scaled/counts.tsv",
+        "{data_dir}/{type}/{size}/GTEx/raw/samples.tsv",
+        "{data_dir}/{type}/{size}/TCGA/scaled/counts.tsv",
+    output:
+        "{data_dir}/{type}/{size}/filtered/naive/counts.tsv",
+    conda:
+        "envs/py_data.yaml",
+    shell:
+        """
+        python3 scripts/filter_naive.py     \
+            --gtex_counts {input[0]}        \
+            --gtex_samples {input[1]}       \
+            --tcga_counts {input[2]}        \
+            --output {output}
+        """
 
 # rule neural_network:
 #     input:

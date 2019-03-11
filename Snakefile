@@ -4,6 +4,7 @@ wildcard_constraints:
     study="TCGA|GTEx",
     type="exon|gene",
     size="full|[0-9]+x[0-9]+",
+    filter="pca|naive",
 
 rule help:
     shell:
@@ -118,7 +119,7 @@ rule filter_naive:
         "{data_dir}/{type}/{size}/GTEx/raw/samples.tsv",
         "{data_dir}/{type}/{size}/TCGA/scaled/counts.tsv",
     output:
-        "{data_dir}/{type}/{size}/filtered/naive/counts.tsv",
+        "{data_dir}/{type}/{size}/naive/counts.tsv",
     conda:
         "envs/py_data.yaml",
     shell:
@@ -135,7 +136,7 @@ rule filter_pca:
         "{data_dir}/{type}/{size}/GTEx/scaled/counts.tsv",
         "{data_dir}/{type}/{size}/TCGA/scaled/counts.tsv",
     output:
-        "{data_dir}/{type}/{size}/filtered/pca/counts.tsv",
+        "{data_dir}/{type}/{size}/pca/counts.tsv",
     conda:
         "envs/py_data.yaml",
     shell:
@@ -159,9 +160,25 @@ rule create_dummies:
             -i {input}                      \
             -o {output}
         """
-# rule neural_network:
-#     input:
-#     output:
-#     shell:
-#         """
-#         """
+
+rule neural_network_0hl:
+    input:
+        "{data_dir}/{type}/{size}/{filter}/counts.tsv",
+        "{data_dir}/{type}/{size}/TCGA/dummy/samples.tsv",
+    output:
+        "{data_dir}/{type}/{size}/{filter}/nn_0hl/p_{predictors}/s_{seconds}/model.pkl",
+        "{data_dir}/{type}/{size}/{filter}/nn_0hl/p_{predictors}/s_{seconds}/loss.tsv",
+        "{data_dir}/{type}/{size}/{filter}/nn_0hl/p_{predictors}/s_{seconds}/predictions.tsv",
+    conda:
+        "envs/py_data.yaml",
+    shell:
+        """
+        python3 scripts/neural_network_0hl.py   \
+            --counts {input[0]}                 \
+            --samples {input[1]}                \
+            --predictors {wildcards.predictors} \
+            --seconds {wildcards.seconds}       \
+            --model {output[0]}                 \
+            --loss {output[1]}                  \
+            --predictions {output[2]}
+        """

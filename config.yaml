@@ -1,7 +1,14 @@
-data_dir: '/home/andyb/project_in_bioinformatics/data'
+# data_dir: '/home/andyb/project_in_bioinformatics/data'
+data_dir: '/home/andrej/ActiveProjects/project_in_bioinformatics/data'
 # study: ["TCGA", "GTEx"]
 study: ['TCGA', 'GTEx']
 # type: ["gene", "exon"]
 type: ['gene']
 # size: ["full", "subset"]
-size: ["subset", 'full']
+size: ['200x100']
+#
+filter: ['pca', 'naive']
+#
+neural_network: ['nn_0', 'nn_1']
+#
+predictors: ['50']

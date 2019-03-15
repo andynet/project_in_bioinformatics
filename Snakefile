@@ -15,6 +15,7 @@ rule help:
             get_description
             get_scaled
             get_filtered
+            run_nn
 ********************************************************************************
         "
         """
@@ -161,24 +162,62 @@ rule create_dummies:
             -o {output}
         """
 
-rule neural_network_0hl:
+# rule neural_network_0hl:
+#     input:
+#         "{data_dir}/{type}/{size}/{filter}/counts.tsv",
+#         "{data_dir}/{type}/{size}/TCGA/dummy/samples.tsv",
+#     output:
+#         "{data_dir}/{type}/{size}/{filter}/nn_0hl/p_{predictors}/s_{seconds}/model.pkl",
+#         "{data_dir}/{type}/{size}/{filter}/nn_0hl/p_{predictors}/s_{seconds}/loss.tsv",
+#         "{data_dir}/{type}/{size}/{filter}/nn_0hl/p_{predictors}/s_{seconds}/predictions.tsv",
+#     conda:
+#         "envs/py_data.yaml",
+#     shell:
+#         """
+#         python3 scripts/neural_network_0hl.py   \
+#             --counts {input[0]}                 \
+#             --samples {input[1]}                \
+#             --predictors {wildcards.predictors} \
+#             --seconds {wildcards.seconds}       \
+#             --model {output[0]}                 \
+#             --loss {output[1]}                  \
+#             --predictions {output[2]}
+#         """
+
+rule neural_network:
     input:
         "{data_dir}/{type}/{size}/{filter}/counts.tsv",
         "{data_dir}/{type}/{size}/TCGA/dummy/samples.tsv",
     output:
-        "{data_dir}/{type}/{size}/{filter}/nn_0hl/p_{predictors}/s_{seconds}/model.pkl",
-        "{data_dir}/{type}/{size}/{filter}/nn_0hl/p_{predictors}/s_{seconds}/loss.tsv",
-        "{data_dir}/{type}/{size}/{filter}/nn_0hl/p_{predictors}/s_{seconds}/predictions.tsv",
+        "{data_dir}/{type}/{size}/{filter}/nn_{hidden}/p_{predictors}/loss.tsv",
+    params:
+        "{data_dir}/{type}/{size}/{filter}/nn_{hidden}/p_{predictors}/models",
+        "{data_dir}/{type}/{size}/{filter}/nn_{hidden}/p_{predictors}/predictions",
+        "60",
     conda:
         "envs/py_data.yaml",
     shell:
         """
-        python3 scripts/neural_network_0hl.py   \
-            --counts {input[0]}                 \
-            --samples {input[1]}                \
-            --predictors {wildcards.predictors} \
-            --seconds {wildcards.seconds}       \
-            --model {output[0]}                 \
-            --loss {output[1]}                  \
-            --predictions {output[2]}
+        mkdir -p {params[0]}
+        mkdir -p {params[1]}
+
+        python3 scripts/nn_{wildcards.hidden}.py    \
+            --counts {input[0]}                     \
+            --samples {input[1]}                    \
+            --loss {output[0]}                      \
+            --model_dir {params[0]}                 \
+            --prediction_dir {params[1]}            \
+            --seconds {params[2]}                   \
+            --predictors {wildcards.predictors}
         """
+
+rule run_nn:
+    input:
+        expand("{data_dir}/{type}/{size}/{filter}/{neural_network}/p_{predictors}/loss.tsv",
+                data_dir = config['data_dir'],
+                type = config['type'],
+                size = config['size'],
+                filter = config['filter'],
+                neural_network = config['neural_network'],
+                predictors = config['predictors'],
+                ),

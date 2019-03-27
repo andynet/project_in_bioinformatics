@@ -193,7 +193,7 @@ rule neural_network:
     params:
         "{data_dir}/{type}/{size}/{filter}/nn_{hidden}/p_{predictors}/models",
         "{data_dir}/{type}/{size}/{filter}/nn_{hidden}/p_{predictors}/predictions",
-        "60",
+        config['max_training_time'],
     conda:
         "envs/py_data.yaml",
     shell:
@@ -213,11 +213,11 @@ rule neural_network:
 
 rule run_nn:
     input:
-        expand("{data_dir}/{type}/{size}/{filter}/{neural_network}/p_{predictors}/loss.tsv",
+        expand("{data_dir}/{type}/{size}/{filter}/nn_{hidden}/p_{predictors}/loss.tsv",
                 data_dir = config['data_dir'],
                 type = config['type'],
                 size = config['size'],
                 filter = config['filter'],
-                neural_network = config['neural_network'],
+                hidden = config['hidden'],
                 predictors = config['predictors'],
                 ),

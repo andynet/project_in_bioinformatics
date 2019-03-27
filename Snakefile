@@ -162,32 +162,37 @@ rule create_dummies:
             -o {output}
         """
 
-# rule neural_network_0hl:
-#     input:
-#         "{data_dir}/{type}/{size}/{filter}/counts.tsv",
-#         "{data_dir}/{type}/{size}/TCGA/dummy/samples.tsv",
-#     output:
-#         "{data_dir}/{type}/{size}/{filter}/nn_0hl/p_{predictors}/s_{seconds}/model.pkl",
-#         "{data_dir}/{type}/{size}/{filter}/nn_0hl/p_{predictors}/s_{seconds}/loss.tsv",
-#         "{data_dir}/{type}/{size}/{filter}/nn_0hl/p_{predictors}/s_{seconds}/predictions.tsv",
-#     conda:
-#         "envs/py_data.yaml",
-#     shell:
-#         """
-#         python3 scripts/neural_network_0hl.py   \
-#             --counts {input[0]}                 \
-#             --samples {input[1]}                \
-#             --predictors {wildcards.predictors} \
-#             --seconds {wildcards.seconds}       \
-#             --model {output[0]}                 \
-#             --loss {output[1]}                  \
-#             --predictions {output[2]}
-#         """
-
-rule neural_network:
+rule split_datasets:
     input:
         "{data_dir}/{type}/{size}/{filter}/counts.tsv",
         "{data_dir}/{type}/{size}/TCGA/dummy/samples.tsv",
+    output:
+        expand("{{data_dir}}/{{type}}/{{size}}/{{filter}}/counts.{set}.tsv",
+                set = ['training', 'validation', 'testing']),
+        expand("{{data_dir}}/{{type}}/{{size}}/{{filter}}/samples.{set}.tsv",
+                set = ['training', 'validation', 'testing']),
+    conda:
+        "envs/py_data.yaml",
+    shell:
+        """
+        python3 scripts/split_datasets.py   \
+            --inf {input[0]}                \
+            --inl {input[1]}                \
+            --trf {output[0]}               \
+            --vaf {output[1]}               \
+            --tef {output[2]}               \
+            --trl {output[3]}               \
+            --val {output[4]}               \
+            --tel {output[5]}
+        """
+
+
+rule neural_network:
+    input:
+        "{data_dir}/{type}/{size}/{filter}/counts.training.tsv",
+        "{data_dir}/{type}/{size}/{filter}/samples.training.tsv",
+        "{data_dir}/{type}/{size}/{filter}/counts.validation.tsv",
+        "{data_dir}/{type}/{size}/{filter}/samples.validation.tsv",
     output:
         "{data_dir}/{type}/{size}/{filter}/nn_{hidden}/p_{predictors}/loss.tsv",
     params:

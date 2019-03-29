@@ -1,6 +1,7 @@
 # libraries
 import torch.nn.functional as F
 import torch.optim as optim
+# from textwrap import dedent
 from random import shuffle
 import torch.nn as nn
 import pandas as pd
@@ -12,20 +13,41 @@ import time
 
 
 # define neural network
+def create_nn(architecture, out_size):
+
+    hidden_layers = ""
+    forward_pass = ""
+
+    architecture = architecture.split('-')
+    for i in range(len(architecture)-1):
+        hl = f"self.hidden{i} = nn.Linear({architecture[i]}, {architecture[i+1]})\n"
+        hidden_layers += " "*8 + hl
+
+        fwp = f"x = self.dropout(F.relu(self.hidden{i}(x)))\n"
+        forward_pass += " "*8 + fwp
+
+    code = """\
 class Net(nn.Module):
 
-    def __init__(self, in_size, out_size):
+    def __init__(self):
         super(Net, self).__init__()
-        self.hidden = nn.Linear(in_size, in_size)
-        self.output = nn.Linear(in_size, out_size)
 
-        # 50% Dropout here
+        # hidden layers
+{}
+        # output layer
+        self.output = nn.Linear({}, {})         # performs y=x*A^T + b
+
+        # 50% dropout layer
         self.dropout = nn.Dropout(p=0.5)
 
-    def forward(self, _in):
-        tmp = self.dropout(F.relu(self.hidden(_in)))
-        out = self.output(tmp)
-        return out
+    def forward(self, x):
+{}
+        x = self.output(x)
+        return x
+
+""".format(hidden_layers, architecture[-1], out_size, forward_pass)
+
+    return code
 
 
 def main():
@@ -34,16 +56,16 @@ def main():
     parser.add_argument('--samples_t', required=True)
     parser.add_argument('--counts_v', required=True)
     parser.add_argument('--samples_v', required=True)
+    parser.add_argument('--architecture', required=True)
     parser.add_argument('--loss', required=True)
     parser.add_argument('--model_dir', required=True)
     parser.add_argument('--prediction_dir', required=True)
     parser.add_argument('--seconds', required=True)
-    parser.add_argument('--predictors', required=True)
 
     args = parser.parse_args()
 
     # parameters
-    n_inputs = int(args.predictors)
+    n_inputs = int(str(args.architecture).split('-')[0])
     n_epochs = 200
     batch_size = 20
     train_seconds = int(args.seconds)
@@ -55,8 +77,20 @@ def main():
     features_validate = pd.read_csv(args.counts_v, sep='\t', header=0, index_col=0).iloc[:,0:n_inputs]
     labels_validate = pd.read_csv(args.samples_v, sep='\t', header=0, index_col=0)
 
+    # GPU execution
+    if torch.cuda.is_available():
+        print("CUDA is available.")
+        device = torch.device("cuda")
+    else:
+        print("CUDA not available, running on cpu.")
+        device = torch.device("cpu")
+
+
     # initialize neural network
-    net = Net(n_inputs, labels_train.shape[1])
+    code = create_nn(args.architecture, labels_train.shape[1])
+    exec(code, globals())
+    net = Net()
+    print(net)
 
     # define loss function and optimizer
     criterion = nn.CrossEntropyLoss()
@@ -69,6 +103,14 @@ def main():
     features_validate_tensor = torch.tensor(features_validate.values).float()
     labels_validate_tensor = torch.tensor(labels_validate.values.argmax(axis=1)).long()
 
+    # move data to GPU
+    features_train_tensor = features_train_tensor.to(device)
+    labels_train_tensor = labels_train_tensor.to(device)
+
+    features_validate_tensor = features_validate_tensor.to(device)
+    labels_validate_tensor = labels_validate_tensor.to(device)
+
+    # start training
     start = time.time()
     loss_file = open(args.loss, 'w')
 

@@ -1,6 +1,6 @@
 # libraries
 import torch.optim as optim
-from random import shuffle
+from random import shuffle, seed
 import torch.nn as nn
 import pandas as pd
 import numpy as np
@@ -24,8 +24,10 @@ class Net(nn.Module):
 
 def main():
     parser = argparse.ArgumentParser(description="Filtering of TCGA")
-    parser.add_argument('--counts', required=True)
-    parser.add_argument('--samples', required=True)
+    parser.add_argument('--counts_t', required=True)
+    parser.add_argument('--samples_t', required=True)
+    parser.add_argument('--counts_v', required=True)
+    parser.add_argument('--samples_v', required=True)
     parser.add_argument('--loss', required=True)
     parser.add_argument('--model_dir', required=True)
     parser.add_argument('--prediction_dir', required=True)
@@ -35,25 +37,20 @@ def main():
     args = parser.parse_args()
 
     # parameters
-    # parameters
     n_inputs = int(args.predictors)
     n_epochs = 200
     batch_size = 20
     train_seconds = int(args.seconds)
 
     # load data
-    features_df = pd.DataFrame(pd.read_csv(args.counts, sep='\t', header=0, index_col=0)).iloc[:,0:n_inputs]
-    labels_df = pd.DataFrame(pd.read_csv(args.samples, sep='\t', header=0, index_col=0))
+    features_train = pd.read_csv(args.counts_t, sep='\t', header=0, index_col=0).iloc[:,0:n_inputs]
+    labels_train = pd.read_csv(args.samples_t, sep='\t', header=0, index_col=0)
 
-    # split to train, test and validation
-    features_train, features_test, features_validate = np.split(features_df.sample(frac=1), [int(.6*len(features_df)), int(.8*len(features_df))])
-
-    labels_train = labels_df.loc[features_train.index].values.argmax(axis=1)
-    labels_test = labels_df.loc[features_test.index].values.argmax(axis=1)
-    labels_validate = labels_df.loc[features_validate.index].values.argmax(axis=1)
+    features_validate = pd.read_csv(args.counts_v, sep='\t', header=0, index_col=0).iloc[:,0:n_inputs]
+    labels_validate = pd.read_csv(args.samples_v, sep='\t', header=0, index_col=0)
 
     # initialize neural network
-    net = Net(n_inputs, labels_df.shape[1])
+    net = Net(n_inputs, labels_train.shape[1])
 
     # define loss function and optimizer
     criterion = nn.CrossEntropyLoss()
@@ -61,10 +58,10 @@ def main():
 
     # prepare data
     features_train_tensor = torch.tensor(features_train.values).float()
-    labels_train_tensor = torch.tensor(labels_train).long()
+    labels_train_tensor = torch.tensor(labels_train.values.argmax(axis=1)).long()
 
-    features_test_tensor = torch.tensor(features_test.values).float()
-    labels_test_tensor = torch.tensor(labels_test).long()
+    features_validate_tensor = torch.tensor(features_validate.values).float()
+    labels_validate_tensor = torch.tensor(labels_validate.values.argmax(axis=1)).long()
 
     start = time.time()
     loss_file = open(args.loss, 'w')
@@ -104,13 +101,13 @@ def main():
         correct = 0
 
         with torch.no_grad():
-            for row in range(0, features_test_tensor.shape[0], 1):
+            for row in range(0, features_validate_tensor.shape[0], 1):
 
-                outputs = net(features_test_tensor[row:row+1, :])
-                loss = criterion(outputs, labels_test_tensor[row:row+1])
+                outputs = net(features_validate_tensor[row:row+1, :])
+                loss = criterion(outputs, labels_validate_tensor[row:row+1])
                 test_loss += loss.item()
 
-                ground_truth = int(labels_test_tensor[row])
+                ground_truth = int(labels_validate_tensor[row])
                 prediction = int(torch.argmax(outputs))
 
                 if ground_truth == prediction:
@@ -119,8 +116,8 @@ def main():
                 # save predictions
                 print('{}\t{}\t{}\n'.format(ground_truth, prediction, list(outputs.detach().numpy().round(decimals=2)[0])), end='', file=prediction_file)
 
-        test_loss_avg = test_loss/features_test_tensor.shape[0]
-        accuracy = correct/features_test_tensor.shape[0]
+        test_loss_avg = test_loss/features_validate_tensor.shape[0]
+        accuracy = correct/features_validate_tensor.shape[0]
 
         # print stats
         print('{}\t{}\t{}\t{}\n'.format(epoch, train_loss, test_loss, accuracy), end='', file=loss_file)
@@ -135,4 +132,5 @@ def main():
 
 
 if __name__ == '__main__':
+    seed(0)
     main()

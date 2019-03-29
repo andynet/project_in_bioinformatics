@@ -5,6 +5,7 @@ wildcard_constraints:
     type="exon|gene",
     size="full|[0-9]+x[0-9]+",
     filter="pca|naive",
+    architecture="[0-9-]+"
 
 rule help:
     shell:
@@ -194,10 +195,10 @@ rule neural_network:
         "{data_dir}/{type}/{size}/{filter}/counts.validation.tsv",
         "{data_dir}/{type}/{size}/{filter}/samples.validation.tsv",
     output:
-        "{data_dir}/{type}/{size}/{filter}/nn_{hidden}/p_{predictors}/loss.tsv",
+        "{data_dir}/{type}/{size}/{filter}/nn_{architecture}/loss.tsv",
     params:
-        "{data_dir}/{type}/{size}/{filter}/nn_{hidden}/p_{predictors}/models",
-        "{data_dir}/{type}/{size}/{filter}/nn_{hidden}/p_{predictors}/predictions",
+        "{data_dir}/{type}/{size}/{filter}/nn_{architecture}/models",
+        "{data_dir}/{type}/{size}/{filter}/nn_{architecture}/predictions",
         config['max_training_time'],
     conda:
         "envs/py_data.yaml",
@@ -206,14 +207,16 @@ rule neural_network:
         mkdir -p {params[0]}
         mkdir -p {params[1]}
 
-        python3 scripts/nn_{wildcards.hidden}.py    \
-            --counts {input[0]}                     \
-            --samples {input[1]}                    \
+        python3 scripts/nn_general.py               \
+            --counts_t {input[0]}                   \
+            --samples_t {input[1]}                  \
+            --counts_v {input[2]}                   \
+            --samples_v {input[3]}                  \
+            --architecture {wildcards.architecture} \
             --loss {output[0]}                      \
             --model_dir {params[0]}                 \
             --prediction_dir {params[1]}            \
-            --seconds {params[2]}                   \
-            --predictors {wildcards.predictors}
+            --seconds {params[2]}
         """
 
 rule run_nn:

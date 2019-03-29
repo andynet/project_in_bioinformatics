@@ -110,6 +110,8 @@ def main():
     features_validate_tensor = features_validate_tensor.to(device)
     labels_validate_tensor = labels_validate_tensor.to(device)
 
+    net.to(device)
+
     # start training
     start = time.time()
     loss_file = open(args.loss, 'w')

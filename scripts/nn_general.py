@@ -164,7 +164,7 @@ def main():
                     correct += 1
 
                 # save predictions
-                print('{}\t{}\t{}\n'.format(ground_truth, prediction, list(outputs.detach().numpy().round(decimals=2)[0])), end='', file=prediction_file)
+                print('{}\t{}\t{}\n'.format(ground_truth, prediction, list(outputs.detach().cpu().numpy().round(decimals=2)[0])), end='', file=prediction_file)
 
         test_loss_avg = test_loss/features_validate_tensor.shape[0]
         accuracy = correct/features_validate_tensor.shape[0]

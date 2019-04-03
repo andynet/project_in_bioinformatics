@@ -221,11 +221,10 @@ rule neural_network:
 
 rule run_nn:
     input:
-        expand("{data_dir}/{type}/{size}/{filter}/nn_{hidden}/p_{predictors}/loss.tsv",
+        expand("{data_dir}/{type}/{size}/{filter}/nn_{architecture}/loss.tsv",
                 data_dir = config['data_dir'],
                 type = config['type'],
                 size = config['size'],
                 filter = config['filter'],
-                hidden = config['hidden'],
-                predictors = config['predictors'],
+                architecture = config['architecture'],
                 ),

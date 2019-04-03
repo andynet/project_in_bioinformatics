@@ -9,9 +9,9 @@ size: ["200x100"]
 #
 filter: ["pca", "naive"]
 #
-hidden: ["0", "1"]
+# hidden: ["0", "1"]
 # predictors: ["9662"]
-predictors: ["50"]
-# 
+# predictors: ["50"]
+architecture: ["50-50"]
+#
 max_training_time: "60"
-

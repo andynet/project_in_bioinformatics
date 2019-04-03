@@ -55,12 +55,33 @@ write.table(counts, out_file, sep = '\t', col.names=NA)
 
 if (argv$study == "GTEx") {
     samples <- data.frame(colData(rse))['smts']
+    
+    # added just for compatibility, stage is 0 in all samples
+    stages <- data.frame()
+    
 } else if (argv$study == "TCGA") {
     samples <- data.frame(colData(rse))['gdc_cases.project.primary_site']
+    
+    # added 2019-04-03; start
+    stages <- data.frame(colData(rse))['gdc_cases.diagnoses.tumor_stage']
+    
+    old_stages <- c(sort(unique(stages$gdc_cases.diagnoses.tumor_stage)))
+    new_stages <- c(NA, 1, NA, 0, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, NA)
+    
+    for (i in 1:20) {
+      stages$new_stage[stages$gdc_cases.diagnoses.tumor_stage == old_stages[i]] = new_stages[i]
+    } 
+    
+    stages <- stages['new_stage']
+    # end;
+    
 } else {
     print("Unexpected branch.")
     quit(save = "no", status = 1)
 }
+
+out_file <- paste(out_dir, "stages.tsv", sep = '/')
+write.table(stages, out_file, sep = '\t', col.names = NA)
 
 out_file <- paste(out_dir, "samples.tsv", sep = '/')
 write.table(samples, out_file, sep = '\t', col.names=NA)

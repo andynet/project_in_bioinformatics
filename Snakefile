@@ -53,6 +53,7 @@ rule extract:
     output:
         "{data_dir}/{type}/{size}/{study}/raw/counts.tsv",
         "{data_dir}/{type}/{size}/{study}/raw/samples.tsv",
+        "{data_dir}/{type}/{size}/{study}/raw/stages.tsv",
     conda:
         "envs/recount.yaml",
     shell:

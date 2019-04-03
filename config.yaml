@@ -1,17 +1,21 @@
-# data_dir: '/home/andyb/project_in_bioinformatics/data'
-data_dir: '/home/andrej/ActiveProjects/project_in_bioinformatics/data'
+# data_dir: 
+data_dir: '/home/andyb/project_in_bioinformatics/data'
+
 # study: ["TCGA", "GTEx"]
-study: ['TCGA', 'GTEx']
+study: ["TCGA", "GTEx"]
+
 # type: ["gene", "exon"]
-type: ['gene']
-# size: ["full", "subset"]
-size: ["200x100"]
-#
-filter: ["pca", "naive"]
-#
-# hidden: ["0", "1"]
-# predictors: ["9662"]
-# predictors: ["50"]
-architecture: ["50-50"]
-#
-max_training_time: "60"
+type: ["gene"]
+
+# size: ["full", r"[0-9]+x[0-9]+"]
+size: ["full"]
+
+# filter: ["pca", "naive"]
+filter: ["pca"]
+
+# architecture: ["9662", r"[0-9]+(-[0-9]+)*"]
+architecture: ["9662", "966", "96", "9", "966-10", "96-10", "96-10-10", "96-100"]
+
+# max_training_time: "60"
+max_training_time: "900"
+

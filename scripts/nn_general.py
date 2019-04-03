@@ -66,8 +66,8 @@ def main():
 
     # parameters
     n_inputs = int(str(args.architecture).split('-')[0])
-    n_epochs = 200
-    batch_size = 20
+    n_epochs = 500
+    batch_size = 50
     train_seconds = int(args.seconds)
 
     # load data

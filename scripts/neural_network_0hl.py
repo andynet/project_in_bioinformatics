@@ -112,7 +112,7 @@ def main():
         predicted = int(torch.argmax(outputs))
         truth = int(torch.argmax(labels_test_tensor[i, :]))
 
-        print('{}\t{}\t{}\n'.format(truth, predicted, list(outputs.detach().numpy().round(decimals=2))),
+        print('{}\t{}\t{}\n'.format(truth, predicted, list(outputs.detach().cpu().numpy().round(decimals=2))),
               end='', file=predictions_file)
 
         if truth == predicted:

@@ -59,48 +59,52 @@ class Net(nn.Module):
         return x
 
 
-# TODO: 
 def main():
     parser = argparse.ArgumentParser(description="Training of pathways neural network")
-    parser.add_argument('--counts_t', required=True)
-    parser.add_argument('--samples_t', required=True)
-    parser.add_argument('--counts_v', required=True)
-    parser.add_argument('--samples_v', required=True)
-    parser.add_argument('--architecture', required=True)
-    parser.add_argument('--loss', required=True)
-    parser.add_argument('--model_dir', required=True)
-    parser.add_argument('--prediction_dir', required=True)
-    parser.add_argument('--seconds', required=True)
+
+    # inputs
+    parser.add_argument('--train_features', required=True)
+    parser.add_argument('--train_labels', required=True)
+    parser.add_argument('--validate_features', required=True)
+    parser.add_argument('--validate_labels', required=True)
+
+    # outputs
+    parser.add_argument('--output_dir', required=True)
+
+    # architecture related
+    parser.add_argument('--pathways', required=True)
+    parser.add_argument('--linear_architecture', required=True)
+
+    # training related
+    parser.add_argument('--max_seconds', type=int, default=3600)
+    parser.add_argument('--max_epochs', type=int, default=100)
+    parser.add_argument('--batch_size', type=int, default=100)
 
     args = parser.parse_args()
 
-    # parameters
-    n_inputs = int(str(args.architecture).split('-')[0])
-    n_epochs = 500
-    batch_size = 50
-    train_seconds = int(args.seconds)
-
-    # load data
-    features_train = pd.read_csv(args.counts_t, sep='\t', header=0, index_col=0).iloc[:,0:n_inputs]
-    labels_train = pd.read_csv(args.samples_t, sep='\t', header=0, index_col=0)
-
-    features_validate = pd.read_csv(args.counts_v, sep='\t', header=0, index_col=0).iloc[:,0:n_inputs]
-    labels_validate = pd.read_csv(args.samples_v, sep='\t', header=0, index_col=0)
-
     # GPU execution
     if torch.cuda.is_available():
-        print("CUDA is available.")
+        print("CUDA is available, running on gpu.")
         device = torch.device("cuda")
     else:
         print("CUDA not available, running on cpu.")
         device = torch.device("cpu")
 
+    # load data
+    train_features = torch.tensor(pd.read_csv(args.train_features, sep='\t', header=0, index_col=0).values).float().to(device)
+    # TODO: 
+    labels_train = pd.read_csv(args.samples_t, sep='\t', header=0, index_col=0)
+
+    features_validate = pd.read_csv(args.counts_v, sep='\t', header=0, index_col=0)
+    labels_validate = pd.read_csv(args.samples_v, sep='\t', header=0, index_col=0)
+
 
     # initialize neural network
-    code = create_nn(args.architecture, labels_train.shape[1])
-    exec(code, globals())
-    net = Net()
-    print(net)
+    pathways = torch.tensor(pd.read_csv(args.pathways, sep='\t', header=0, index_col=0).values)
+    architecture = [ int(item) for item in args.architecture.split('-') ]
+    out_size = labels_train
+    model = Net(pathways, architecture, out_size)
+    print(model)
 
     # define loss function and optimizer
     criterion = nn.CrossEntropyLoss()

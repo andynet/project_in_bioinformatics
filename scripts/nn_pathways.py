@@ -9,6 +9,8 @@ import argparse
 import pickle
 import torch
 import time
+import math
+
 
 # define Pathways layer
 class Pathways(nn.Module):
@@ -29,6 +31,7 @@ class Pathways(nn.Module):
         return 'in_features={}, out_features={}'.format(
             self.pathways.shape[0], self.pathways.shape[1]
         )
+
 
 # define neural network
 class Net(nn.Module):
@@ -91,19 +94,18 @@ def main():
         device = torch.device("cpu")
 
     # load data
-    train_features = torch.tensor(pd.read_csv(args.train_features, sep='\t', header=0, index_col=0).values).float().to(device)
-    # TODO: 
-    labels_train = pd.read_csv(args.samples_t, sep='\t', header=0, index_col=0)
+    train_features = torch.tensor(pd.read_csv(args.train_features, sep='\t', header=0, index_col=0).values).float32().to(device)
+    train_labels = torch.tensor(pd.read_csv(args.train_labels, sep='\t', header=0, index_col=0).values).uint8().to(device)
 
-    features_validate = pd.read_csv(args.counts_v, sep='\t', header=0, index_col=0)
-    labels_validate = pd.read_csv(args.samples_v, sep='\t', header=0, index_col=0)
-
+    validate_features = torch.tensor(pd.read_csv(args.validate_features, sep='\t', header=0, index_col=0).values).float32().to(device)
+    validate_labels = torch.tensor(pd.read_csv(args.validate_labels, sep='\t', header=0, index_col=0).values).uint8().to(device)
 
     # initialize neural network
-    pathways = torch.tensor(pd.read_csv(args.pathways, sep='\t', header=0, index_col=0).values)
+    pathways = torch.tensor(pd.read_csv(args.pathways, sep='\t', header=0, index_col=0).values).uint8().to(device)
     architecture = [ int(item) for item in args.architecture.split('-') ]
-    out_size = labels_train
+    out_size = train_labels.shape()[1]
     model = Net(pathways, architecture, out_size)
+    model.to(device)
     print(model)
 
     # define loss function and optimizer
@@ -111,29 +113,23 @@ def main():
     optimizer = optim.Adam(net.parameters())
 
     # prepare data
-    features_train_tensor = torch.tensor(features_train.values).float()
-    labels_train_tensor = torch.tensor(labels_train.values.argmax(axis=1)).long()
-
-    features_validate_tensor = torch.tensor(features_validate.values).float()
-    labels_validate_tensor = torch.tensor(labels_validate.values.argmax(axis=1)).long()
-
-    # move data to GPU
-    features_train_tensor = features_train_tensor.to(device)
-    labels_train_tensor = labels_train_tensor.to(device)
-
-    features_validate_tensor = features_validate_tensor.to(device)
-    labels_validate_tensor = labels_validate_tensor.to(device)
-
-    net.to(device)
+    train_labels_1D = torch.tensor(train_labels.argmax(axis=1))
+    validate_labels_1D = torch.tensor(validate_labels.argmax(axis=1))
 
     # start training
+    loss_file_name = args.output_dir + '/loss.tsv'
+    loss_file = open(loss_file, 'w')
+
     start = time.time()
-    loss_file = open(args.loss, 'w')
 
-    # for each epoch
-    for epoch in range(n_epochs):
+    epoch = 0
+    seconds = time.time() - start
 
-        model_file = f'{args.model_dir}/{epoch}.pkl'
+    while epoch < args.max_epochs and seconds < args.max_seconds:
+
+        model_file_name = args.output_dir + f'/model/{epoch}.pkl'
+        prediction_file_name = args.output_dir + f'/prediction/{epoch}.pkl'
+        
         prediction_file = open(f'{args.prediction_dir}/{epoch}.tsv', 'w')
 
         # train model

@@ -189,7 +189,7 @@ rule split_datasets:
         """
 
 
-rule neural_network:
+rule nn_feedforward:
     input:
         "{data_dir}/{type}/{size}/{filter}/counts.training.tsv",
         "{data_dir}/{type}/{size}/{filter}/samples.training.tsv",
@@ -218,6 +218,39 @@ rule neural_network:
             --model_dir {params[0]}                 \
             --prediction_dir {params[1]}            \
             --seconds {params[2]}
+        """
+
+rule nn_pathways:
+    input:
+        "{data_dir}/{type}/{size}/{filter}/counts.training.tsv",
+        "{data_dir}/{type}/{size}/{filter}/{labels}.training.tsv",
+        "{data_dir}/{type}/{size}/{filter}/counts.validation.tsv",
+        "{data_dir}/{type}/{size}/{filter}/{labels}.validation.tsv",
+    output:
+        "{data_dir}/{type}/{size}/{filter}/pw_{architecture}/{labels}/loss.tsv",
+    params:
+        "{data_dir}/{type}/{size}/{filter}/pw_{architecture}/{labels}",
+        config['pathways'],
+        config['max_training_time'],
+        config['max_epochs'],
+        config['batch_size']
+    conda:
+        "envs/py_data.yaml",
+    shell:
+        """
+        mkdir -p {params[0]}
+
+        python3 scripts/nn_pathways.py                          \
+            --train_features        {input[0]}                  \
+            --train_labels          {input[1]}                  \
+            --validate_features     {input[2]}                  \
+            --validate_labels       {input[3]}                  \
+            --output_dir            {params[0]}                 \
+            --pathways              {params[1]}                 \
+            --linear_architecture   {wildcards.architecture}    \
+            --max_seconds           {params[2]}                 \
+            --max_epochs            {params[3]}                 \
+            --batch_size            {params[4]}
         """
 
 rule run_nn:

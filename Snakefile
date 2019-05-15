@@ -190,10 +190,10 @@ rule split_datasets:
         mkdir -p {params[0]}
 
         python3 scripts/split_datasets.py   \
-            --naive {input[1]}
-            --pca {input[0]}
-            --samples {input[2]}
-            --stages {input[3]}
+            --naive {input[1]}              \
+            --pca {input[0]}                \
+            --samples {input[2]}            \
+            --stages {input[3]}             \
             --histogram_data {params[0]}
         """
 

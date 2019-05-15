@@ -5,7 +5,9 @@ wildcard_constraints:
     type="exon|gene",
     size="full|[0-9]+x[0-9]+",
     filter="pca|naive",
-    architecture="[0-9-]+"
+    nn="ff|pw",
+    architecture="[0-9-]+",
+    labels="samples|stages",
 
 rule help:
     shell:
@@ -166,41 +168,50 @@ rule create_dummies:
 
 rule split_datasets:
     input:
-        "{data_dir}/{type}/{size}/{filter}/counts.tsv",
+        "{data_dir}/{type}/{size}/pca/counts.tsv",
+        "{data_dir}/{type}/{size}/naive/counts.tsv",
         "{data_dir}/{type}/{size}/TCGA/dummy/samples.tsv",
+        "{data_dir}/{type}/{size}/TCGA/dummy/stages.tsv",
     output:
-        expand("{{data_dir}}/{{type}}/{{size}}/{{filter}}/counts.{set}.tsv",
+        expand("{{data_dir}}/{{type}}/{{size}}/pca/counts.{set}.tsv",
                 set = ['training', 'validation', 'testing']),
-        expand("{{data_dir}}/{{type}}/{{size}}/{{filter}}/samples.{set}.tsv",
+        expand("{{data_dir}}/{{type}}/{{size}}/naive/counts.{set}.tsv",
                 set = ['training', 'validation', 'testing']),
+        expand("{{data_dir}}/{{type}}/{{size}}/TCGA/dummy/samples.{set}.tsv",
+                set = ['training', 'validation', 'testing']),
+        expand("{{data_dir}}/{{type}}/{{size}}/TCGA/dummy/stages.{set}.tsv",
+                set = ['training', 'validation', 'testing']),
+    params:
+        "{data_dir}/{type}/{size}/histogram_data"
     conda:
         "envs/py_data.yaml",
     shell:
         """
+        mkdir -p {params[0]}
+
         python3 scripts/split_datasets.py   \
-            --inf {input[0]}                \
-            --inl {input[1]}                \
-            --trf {output[0]}               \
-            --vaf {output[1]}               \
-            --tef {output[2]}               \
-            --trl {output[3]}               \
-            --val {output[4]}               \
-            --tel {output[5]}
+            --naive {input[1]}
+            --pca {input[0]}
+            --samples {input[2]}
+            --stages {input[3]}
+            --histogram_data {params[0]}
         """
+
+# run with snakemake --dryrun /home/andy/Projects/pib/data/gene/full/pca/counts.testing.tsv
 
 
 rule nn_feedforward:
     input:
         "{data_dir}/{type}/{size}/{filter}/counts.training.tsv",
-        "{data_dir}/{type}/{size}/{filter}/samples.training.tsv",
+        "{data_dir}/{type}/{size}/{filter}/{labels}.training.tsv",
         "{data_dir}/{type}/{size}/{filter}/counts.validation.tsv",
-        "{data_dir}/{type}/{size}/{filter}/samples.validation.tsv",
+        "{data_dir}/{type}/{size}/{filter}/{labels}.validation.tsv",
     output:
-        "{data_dir}/{type}/{size}/{filter}/nn_{architecture}/loss.tsv",
+        "{data_dir}/{type}/{size}/{filter}/ff_{architecture}/{labels}/loss.tsv",
     params:
-        "{data_dir}/{type}/{size}/{filter}/nn_{architecture}/models",
-        "{data_dir}/{type}/{size}/{filter}/nn_{architecture}/predictions",
         config['max_training_time'],
+        config['max_epochs'],
+        config['batch_size'],
     conda:
         "envs/py_data.yaml",
     shell:
@@ -233,7 +244,7 @@ rule nn_pathways:
         config['pathways'],
         config['max_training_time'],
         config['max_epochs'],
-        config['batch_size']
+        config['batch_size'],
     conda:
         "envs/py_data.yaml",
     shell:
@@ -255,10 +266,12 @@ rule nn_pathways:
 
 rule run_nn:
     input:
-        expand("{data_dir}/{type}/{size}/{filter}/nn_{architecture}/loss.tsv",
+        expand("{data_dir}/{type}/{size}/{filter}/{nn}_{architecture}/{labels}/loss.tsv",
                 data_dir = config['data_dir'],
                 type = config['type'],
                 size = config['size'],
                 filter = config['filter'],
+                nn = config['nn'],
                 architecture = config['architecture'],
+                labels = config['labels'],
                 ),

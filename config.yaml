@@ -11,10 +11,25 @@ type: ["gene"]
 size: ["full"]
 
 # filter: ["pca", "naive"]
-filter: ["pca"]
+filter: ["pca", "naive"]
 
 # architecture: ["9662", r"[0-9]+(-[0-9]+)*"]
 architecture: ["9662", "966", "96", "9", "966-10", "96-10", "96-10-10", "96-100"]
 
 # max_training_time: "60"
 max_training_time: "900"
+
+# pathways
+pathways: '/home/andyb/project_in_bioinformatics/data/from_lasse/pathways_df.tsv'
+
+# max_epochs
+max_epochs: "200"
+
+# batch_size
+batch_size: "100"
+
+# nn:
+nn: ["ff", "pw"]
+
+# labels
+labels: ["stages", "samples"]

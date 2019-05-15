@@ -65,7 +65,7 @@ def main():
     train_list = list(train_set['index'])
     print(f'Train set:\t{len(train_list)}.\t({len(train_list)/len(joined_df)})')
 
-    len(set(test_list + validation_list + train_list))
+    print(len(set(test_list + validation_list + train_list)))
 
     # write data for paper
     test_hist = test_set.reset_index(drop=True).groupby(['stages', 'samples']).count().reset_index()

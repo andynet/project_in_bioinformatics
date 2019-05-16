@@ -203,9 +203,9 @@ rule split_datasets:
 rule nn_feedforward:
     input:
         "{data_dir}/{type}/{size}/{filter}/counts.training.tsv",
-        "{data_dir}/{type}/{size}/{filter}/{labels}.training.tsv",
+        "{data_dir}/{type}/{size}/TCGA/dummy/{labels}.training.tsv",
         "{data_dir}/{type}/{size}/{filter}/counts.validation.tsv",
-        "{data_dir}/{type}/{size}/{filter}/{labels}.validation.tsv",
+        "{data_dir}/{type}/{size}/TCGA/dummy/{labels}.validation.tsv",
     output:
         "{data_dir}/{type}/{size}/{filter}/ff_{architecture}/{labels}/loss.tsv",
     params:

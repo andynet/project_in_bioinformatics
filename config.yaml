@@ -28,8 +28,8 @@ max_epochs: "200"
 # batch_size
 batch_size: "100"
 
-# nn:
-nn: ["ff", "pw"]
+# nn: ["ff", "pw"]
+nn: ["ff"]
 
 # labels
 labels: ["stages", "samples"]

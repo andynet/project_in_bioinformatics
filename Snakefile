@@ -209,6 +209,7 @@ rule nn_feedforward:
     output:
         "{data_dir}/{type}/{size}/{filter}/ff_{architecture}/{labels}/loss.tsv",
     params:
+        "{data_dir}/{type}/{size}/{filter}/ff_{architecture}/{labels}",
         config['max_training_time'],
         config['max_epochs'],
         config['batch_size'],
@@ -216,31 +217,31 @@ rule nn_feedforward:
         "envs/py_data.yaml",
     shell:
         """
-        mkdir -p {params[0]}
-        mkdir -p {params[1]}
+        mkdir -p {params[0]}/models
 
-        python3 scripts/nn_general.py               \
-            --counts_t {input[0]}                   \
-            --samples_t {input[1]}                  \
-            --counts_v {input[2]}                   \
-            --samples_v {input[3]}                  \
-            --architecture {wildcards.architecture} \
-            --loss {output[0]}                      \
-            --model_dir {params[0]}                 \
-            --prediction_dir {params[1]}            \
-            --seconds {params[2]}
+        python3 scripts/nn_feedforward.py                       \
+            --features_training     {input[0]}                  \
+            --labels_training       {input[1]}                  \
+            --features_validation   {input[2]}                  \
+            --labels_validation     {input[3]}                  \
+            --out_dir               {params[0]}                 \
+            --architecture          {wildcards.architecture}    \
+            --max_training_time     {params[1]}                 \
+            --max_epochs            {params[2]}                 \
+            --batch_size            {params[3]}
+
         """
 
 rule nn_pathways:
     input:
-        "{data_dir}/{type}/{size}/{filter}/counts.training.tsv",
-        "{data_dir}/{type}/{size}/{filter}/{labels}.training.tsv",
-        "{data_dir}/{type}/{size}/{filter}/counts.validation.tsv",
-        "{data_dir}/{type}/{size}/{filter}/{labels}.validation.tsv",
+        "{data_dir}/{type}/{size}/naive/counts.training.tsv",
+        "{data_dir}/{type}/{size}/TCGA/dummy/{labels}.training.tsv",
+        "{data_dir}/{type}/{size}/naive/counts.validation.tsv",
+        "{data_dir}/{type}/{size}/TCGA/dummy/{labels}.validation.tsv",
     output:
-        "{data_dir}/{type}/{size}/{filter}/pw_{architecture}/{labels}/loss.tsv",
+        "{data_dir}/{type}/{size}/naive/pw_{architecture}/{labels}/loss.tsv",
     params:
-        "{data_dir}/{type}/{size}/{filter}/pw_{architecture}/{labels}",
+        "{data_dir}/{type}/{size}/naive/pw_{architecture}/{labels}",
         config['pathways'],
         config['max_training_time'],
         config['max_epochs'],

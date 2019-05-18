@@ -165,10 +165,12 @@ def main():
     validation_dataset = MyDataset(features=args.validate_features, labels=args.validate_labels,
                                    pathways_df=pathways_df, device=device)
 
-    # check if training.gene_ids == validation_dataset
-    # check if dimensions make sense
-    # print(training_dataset.pathways.shape, training_dataset.features.shape, training_dataset.labels.shape)
-    # print(validation_dataset.pathways.shape, validation_dataset.features.shape, training_dataset.labels.shape)
+    # check for correctness
+    if training_dataset.gene_ids != validation_dataset.gene_ids:
+        print('Gene ids in datasets differ.')
+
+    print(f'Training:\t{training_dataset.features.shape}\t{training_dataset.labels.shape}\n'
+          f'Validation:\t{validation_dataset.features.shape}\t{validation_dataset.labels.shape}\n')
 
     model = NeuralNetwork(architecture=architecture,
                           pathways=pathways_df,
@@ -185,8 +187,7 @@ def main():
 
     while epoch < args.max_epochs and seconds < args.max_seconds:
 
-        # train_loss, train_acc = train(model, training_dataset, loss_function, args.batch_size, optimizer)
-        train_loss, train_acc = 0, 0
+        train_loss, train_acc = train(model, training_dataset, loss_function, args.batch_size, optimizer)
         val_loss, val_acc = validate(model, validation_dataset, loss_function)
 
         # save model

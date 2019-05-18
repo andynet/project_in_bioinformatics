@@ -139,6 +139,9 @@ def main():
     validation_dataset = MyDataset(features=args.features_validation, labels=args.labels_validation,
                                    input_size=architecture[0], device=device)
 
+    print(f'Training:\t{training_dataset.features.shape}\t{training_dataset.labels.shape}\n'
+          f'Validation:\t{validation_dataset.features.shape}\t{validation_dataset.labels.shape}\n')
+
     model = NeuralNetwork(architecture).to(device=device)
     optimizer = torch.optim.Adam(model.parameters())
     print(f'Model architecture:\n{model}')

@@ -1,124 +1,182 @@
-# libraries
-import torch.nn.functional as F
-import torch.optim as optim
-from random import shuffle
-import torch.nn as nn
 import pandas as pd
-import numpy as np
 import argparse
 import pickle
-import torch
 import time
 import math
 
+import torch
+import torch.nn
+import torch.cuda
+import torch.optim
+import torch.utils.data
+import torch.nn.functional
 
-# define Pathways layer
-class Pathways(nn.Module):
 
-    def __init__(self, pathways):
+class Pathways(torch.nn.Module):
+
+    def __init__(self, pathways_df, gene_ids):
+        """
+        Layer representing pathways.
+        :param pathways: binary dataframe representing pathways
+        :param gene_ids: gene ids used in datasets
+        """
         super(Pathways, self).__init__()
-        self.pathways = pathways                                                # type: torch.Tensor
-        self.weight = nn.Parameter(torch.Tensor(self.pathways.shape))           # type: torch.Tensor
+
+        self.pathways = torch.tensor(pathways_df.loc[gene_ids, :].values).to(dtype=torch.float32)
+        self.weight = torch.nn.Parameter(torch.Tensor(self.pathways.shape))
         self.reset_parameters()
 
     def reset_parameters(self):
-        nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+        torch.nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
 
     def forward(self, x):
-        return torch.matmul(self.pathways * self.weight, x)
+        return torch.matmul(x, self.pathways * self.weight)
 
     def extra_repr(self):
-        return 'in_features={}, out_features={}'.format(
-            self.pathways.shape[0], self.pathways.shape[1]
-        )
+        return f'in_features={self.pathways.shape[0]}, out_features={self.pathways.shape[1]}'
 
 
-# define neural network
-class Net(nn.Module):
+class NeuralNetwork(torch.nn.Module):
 
-    def __init__(self, pathways, architecture, out_size):
-        super(Net, self).__init__()
-        self.pathways = Pathways(pathways)
+    def __init__(self, pathways, gene_ids, architecture):
+        """
+            pathways = filename of binary matrix representing pathways
+            architecture = list of int with len() >= 2
+        """
 
-        current_size = pathways.shape[1]
-        if len(architecture) == 0:
-            self.output = nn.Linear(current_size, out_size)
-        else:
-            self.linears = nn.ModuleList()
-            for item in architecture:
-                self.linears.append(nn.Linear(current_size, item))
-                current_size = item
-            self.output = nn.Linear(current_size, out_size)
+        super(NeuralNetwork, self).__init__()
+
+        self.pathways = Pathways(pathways, gene_ids)
+
+        self.architecture = architecture
+        self.linears = torch.nn.ModuleList()
+
+        current_size = self.architecture[0]
+        for i in range(1, len(self.architecture) - 1):
+            self.linears.append(torch.nn.Linear(current_size, self.architecture[i]))
+            current_size = self.architecture[i]
+
+        self.output = torch.nn.Linear(current_size, self.architecture[-1])
+        self.dropout = torch.nn.Dropout(p=0.5)
 
     def forward(self, x):
-        x = F.relu(self.pathways(x))
-        if len(self.linears) == 0:
-            x = self.output(x)
-        else:
-            for l in self.linears:
-                x = F.relu(l(x))
-            x = self.output(x)
-
+        x = torch.nn.functional.relu(self.pathways.forward(x))
+        for i in range(0, len(self.architecture)-2):
+            x = torch.nn.functional.relu(self.linears[i](x))
+        x = self.output(x)
         return x
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Training of pathways neural network")
+class MyDataset(torch.utils.data.Dataset):
 
-    # inputs
+    def __init__(self, features, labels, pathways_df, device):
+        features_df = pd.read_csv(features, sep='\t', header=0, index_col=0)
+        labels_df   = pd.read_csv(labels,   sep='\t', header=0, index_col=0)
+
+        names = [gene_id.split('.')[0] for gene_id in features_df.columns]
+        features_df.columns = names
+
+        self.gene_ids = list(set(names).intersection(set(pathways_df.index)))
+        individuals = list(set(features_df.index).intersection(set(labels_df.index)))
+
+        self.features = torch.tensor(features_df.loc[individuals, self.gene_ids].values).to(device=device, dtype=torch.float32)
+        self.labels   = torch.tensor(labels_df.loc[individuals, :].values)              .to(device=device, dtype=torch.float32)
+
+        self.input_size = self.features.shape[1]
+        self.output_size = labels_df.shape[1]
+
+    def __len__(self):
+        return self.features.shape[0]
+
+    def __getitem__(self, idx):
+        return self.features[idx, :], self.labels[idx, :]
+
+
+def train(model, dataset, loss_function, batch_size, optimizer):
+
+    model.train()
+    train_loss = 0
+    correct = 0
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
+
+    for batch_idx, (data, target) in enumerate(dataloader):
+        optimizer.zero_grad()
+
+        prediction = model(data)
+        for i in range(prediction.shape[0]):
+            if int(torch.argmax(prediction[i])) == int(torch.argmax(target[i])):
+                correct += 1
+
+        loss = loss_function(prediction, target)
+        loss.backward()
+        optimizer.step()
+        train_loss += loss.item()
+
+    train_accuracy = correct/len(dataset)
+
+    return train_loss, train_accuracy
+
+
+def validate(model, dataset, loss_function):
+
+    model.eval()
+    validation_loss = 0
+    correct = 0
+    dataloader = torch.utils.data.DataLoader(dataset)
+
+    for idx, (data, target) in enumerate(dataloader):
+
+        prediction = model(data)
+        for i in range(prediction.shape[0]):
+            if int(torch.argmax(prediction[i])) == int(torch.argmax(target[i])):
+                correct += 1
+
+        loss = loss_function(prediction, target)
+        validation_loss += loss.item()
+
+    validation_accuracy = correct/len(dataset)
+
+    return validation_loss, validation_accuracy
+
+
+def main():
+
+    parser = argparse.ArgumentParser(description="Training of pathways neural network")
     parser.add_argument('--train_features', required=True)
     parser.add_argument('--train_labels', required=True)
     parser.add_argument('--validate_features', required=True)
     parser.add_argument('--validate_labels', required=True)
-
-    # outputs
     parser.add_argument('--output_dir', required=True)
-
-    # architecture related
     parser.add_argument('--pathways', required=True)
     parser.add_argument('--linear_architecture', required=True)
-
-    # training related
     parser.add_argument('--max_seconds', type=int, default=3600)
     parser.add_argument('--max_epochs', type=int, default=100)
     parser.add_argument('--batch_size', type=int, default=100)
-
     args = parser.parse_args()
 
-    # GPU execution
-    if torch.cuda.is_available():
-        print("CUDA is available, running on gpu.")
-        device = torch.device("cuda")
-    else:
-        print("CUDA not available, running on cpu.")
-        device = torch.device("cpu")
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    print(f'Running on {device}.')
 
-    # load data
-    train_features = torch.tensor(pd.read_csv(args.train_features, sep='\t', header=0, index_col=0).values).float32().to(device)
-    train_labels = torch.tensor(pd.read_csv(args.train_labels, sep='\t', header=0, index_col=0).values).uint8().to(device)
+    architecture = [int(x) for x in args.linear_architecture.split('-')]
+    pathways_df  = pd.read_csv(args.pathways, sep='\t', header=0, index_col=0)
 
-    validate_features = torch.tensor(pd.read_csv(args.validate_features, sep='\t', header=0, index_col=0).values).float32().to(device)
-    validate_labels = torch.tensor(pd.read_csv(args.validate_labels, sep='\t', header=0, index_col=0).values).uint8().to(device)
+    training_dataset = MyDataset(features=args.train_features, labels=args.train_labels,
+                                 pathways_df=pathways_df, device=device)
+    validation_dataset = MyDataset(features=args.validate_features, labels=args.validate_labels,
+                                   pathways_df=pathways_df, device=device)
 
-    # initialize neural network
-    pathways = torch.tensor(pd.read_csv(args.pathways, sep='\t', header=0, index_col=0).values).uint8().to(device)
-    architecture = [ int(item) for item in args.architecture.split('-') ]
-    out_size = train_labels.shape()[1]
-    model = Net(pathways, architecture, out_size)
-    model.to(device)
-    print(model)
+    # check if training.gene_ids == validation_dataset
+    # check if dimensions make sense
+    # print(training_dataset.pathways.shape, training_dataset.features.shape, training_dataset.labels.shape)
+    # print(validation_dataset.pathways.shape, validation_dataset.features.shape, training_dataset.labels.shape)
 
-    # define loss function and optimizer
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(net.parameters())
+    model = NeuralNetwork(architecture=architecture,
+                          pathways=pathways_df,
+                          gene_ids=training_dataset.gene_ids).to(device=device)
+    optimizer = torch.optim.Adam(model.parameters())
+    print(f'Model architecture:\n{model}')
 
-    # prepare data
-    train_labels_1D = torch.tensor(train_labels.argmax(axis=1))
-    validate_labels_1D = torch.tensor(validate_labels.argmax(axis=1))
-
-    # start training
-    loss_file_name = args.output_dir + '/loss.tsv'
-    loss_file = open(loss_file, 'w')
+    loss_function = torch.nn.BCEWithLogitsLoss()
 
     start = time.time()
 
@@ -127,68 +185,23 @@ def main():
 
     while epoch < args.max_epochs and seconds < args.max_seconds:
 
-        model_file_name = args.output_dir + f'/model/{epoch}.pkl'
-        prediction_file_name = args.output_dir + f'/prediction/{epoch}.pkl'
-        
-        prediction_file = open(f'{args.prediction_dir}/{epoch}.tsv', 'w')
-
-        # train model
-        net.train()
-        train_loss = 0.0
-
-        train_order = list(range(features_train_tensor.shape[0]))
-        shuffle(train_order)
-
-        for row in range(0, features_train_tensor.shape[0], batch_size):
-
-            optimizer.zero_grad()
-            rows = train_order[row:row+batch_size]           # which rows should be used in batch
-            outputs = net(features_train_tensor[rows,:])
-            loss = criterion(outputs, labels_train_tensor[rows])
-            loss.backward()
-            optimizer.step()
-            train_loss += loss.item()
-
-        train_loss_avg = train_loss/features_train_tensor.shape[0]
+        # train_loss, train_acc = train(model, training_dataset, loss_function, args.batch_size, optimizer)
+        train_loss, train_acc = 0, 0
+        val_loss, val_acc = validate(model, validation_dataset, loss_function)
 
         # save model
+        model_file = f'{args.output_dir}/models/{epoch + 1}.pkl'
         with open(model_file, 'wb') as f:
-            pickle.dump(net, f, pickle.HIGHEST_PROTOCOL)
+            pickle.dump(model, f, pickle.HIGHEST_PROTOCOL)
 
-        # test model
-        net.eval()
-        test_loss = 0.0
-        correct = 0
+        # save stats
+        loss_file = f'{args.output_dir}/loss.tsv'
+        stats = f'{epoch + 1}\t{train_loss:.4f}\t{train_acc:.4f}\t{val_loss:.4f}\t{val_acc:.4f}\n'
+        with open(loss_file, 'a') as f:
+            f.write(stats)
 
-        with torch.no_grad():
-            for row in range(0, features_validate_tensor.shape[0], 1):
-
-                outputs = net(features_validate_tensor[row:row+1, :])
-                loss = criterion(outputs, labels_validate_tensor[row:row+1])
-                test_loss += loss.item()
-
-                ground_truth = int(labels_validate_tensor[row])
-                prediction = int(torch.argmax(outputs))
-
-                if ground_truth == prediction:
-                    correct += 1
-
-                # save predictions
-                print('{}\t{}\t{}\n'.format(ground_truth, prediction, list(outputs.detach().cpu().numpy().round(decimals=2)[0])), end='', file=prediction_file)
-
-        test_loss_avg = test_loss/features_validate_tensor.shape[0]
-        accuracy = correct/features_validate_tensor.shape[0]
-
-        # print stats
-        print('{}\t{}\t{}\t{}\n'.format(epoch, train_loss, test_loss, accuracy), end='', file=loss_file)
-
-        prediction_file.close()
-
-        if time.time() - start > train_seconds:
-            print('Training stopped due to time limit.')
-            break
-
-    loss_file.close()
+        epoch += 1
+        seconds = time.time() - start
 
 
 if __name__ == '__main__':

@@ -197,9 +197,6 @@ rule split_datasets:
             --histogram_data {params[0]}
         """
 
-# run with snakemake --dryrun /home/andy/Projects/pib/data/gene/full/pca/counts.testing.tsv
-
-
 rule nn_feedforward:
     input:
         "{data_dir}/{type}/{size}/{filter}/counts.training.tsv",
@@ -250,7 +247,7 @@ rule nn_pathways:
         "envs/py_data.yaml",
     shell:
         """
-        mkdir -p {params[0]}
+        mkdir -p {params[0]}/models
 
         python3 scripts/nn_pathways.py                          \
             --train_features        {input[0]}                  \
@@ -263,16 +260,14 @@ rule nn_pathways:
             --max_seconds           {params[2]}                 \
             --max_epochs            {params[3]}                 \
             --batch_size            {params[4]}
+            
         """
 
 rule run_nn:
     input:
-        expand("{data_dir}/{type}/{size}/{filter}/{nn}_{architecture}/{labels}/loss.tsv",
+        expand("{data_dir}/{type}/{size}/{analysis_type}/loss.tsv",
                 data_dir = config['data_dir'],
                 type = config['type'],
                 size = config['size'],
-                filter = config['filter'],
-                nn = config['nn'],
-                architecture = config['architecture'],
-                labels = config['labels'],
+                analysis_type = config['analysis_type']
                 ),

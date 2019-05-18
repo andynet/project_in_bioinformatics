@@ -1,5 +1,6 @@
 # data_dir:
 data_dir: '/home/andyb/project_in_bioinformatics/data'
+# data_dir: '/home/andy/Projects/pib/data'
 
 # study: ["TCGA", "GTEx"]
 study: ["TCGA", "GTEx"]
@@ -17,13 +18,13 @@ filter: ["pca", "naive"]
 architecture: ["9662", "966", "96", "9", "966-10", "96-10", "96-10-10", "96-100"]
 
 # max_training_time: "60"
-max_training_time: "900"
+max_training_time: "90000"
 
 # pathways
 pathways: '/home/andyb/project_in_bioinformatics/data/from_lasse/pathways_df.tsv'
 
 # max_epochs
-max_epochs: "200"
+max_epochs: "250"
 
 # batch_size
 batch_size: "100"
@@ -33,3 +34,21 @@ nn: ["ff"]
 
 # labels
 labels: ["stages", "samples"]
+
+# analysis_type:
+analysis_type: [
+  "naive/ff_57992-26/samples",
+  "naive/ff_57992-5/stages",
+
+  "naive/ff_9662-26/samples",
+  "naive/ff_9662-5/stages",
+  "pca/ff_9662-26/samples",
+  "pca/ff_9662-5/stages",
+
+  "naive/ff_186-26/samples",
+  "naive/ff_186-5/stages",
+  "pca/ff_186-26/samples",
+  "pca/ff_186-5/stages",
+  "naive/pw_186-26/samples",
+  "naive/pw_186-5/stages"
+]

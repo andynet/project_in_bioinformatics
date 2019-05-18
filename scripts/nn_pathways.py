@@ -14,7 +14,7 @@ import torch.nn.functional
 
 class Pathways(torch.nn.Module):
 
-    def __init__(self, pathways_df, gene_ids):
+    def __init__(self, pathways_df, gene_ids, device):
         """
         Layer representing pathways.
         :param pathways: binary dataframe representing pathways
@@ -22,7 +22,7 @@ class Pathways(torch.nn.Module):
         """
         super(Pathways, self).__init__()
 
-        self.pathways = torch.tensor(pathways_df.loc[gene_ids, :].values).to(dtype=torch.float32)
+        self.pathways = torch.tensor(pathways_df.loc[gene_ids, :].values).to(device=device, dtype=torch.float32)
         self.weight = torch.nn.Parameter(torch.Tensor(self.pathways.shape))
         self.reset_parameters()
 
@@ -38,7 +38,7 @@ class Pathways(torch.nn.Module):
 
 class NeuralNetwork(torch.nn.Module):
 
-    def __init__(self, pathways, gene_ids, architecture):
+    def __init__(self, pathways, gene_ids, architecture, device):
         """
             pathways = filename of binary matrix representing pathways
             architecture = list of int with len() >= 2
@@ -46,7 +46,7 @@ class NeuralNetwork(torch.nn.Module):
 
         super(NeuralNetwork, self).__init__()
 
-        self.pathways = Pathways(pathways, gene_ids)
+        self.pathways = Pathways(pathways, gene_ids, device)
 
         self.architecture = architecture
         self.linears = torch.nn.ModuleList()
@@ -174,7 +174,8 @@ def main():
 
     model = NeuralNetwork(architecture=architecture,
                           pathways=pathways_df,
-                          gene_ids=training_dataset.gene_ids).to(device=device)
+                          gene_ids=training_dataset.gene_ids,
+                          device=device).to(device=device)
     optimizer = torch.optim.Adam(model.parameters())
     print(f'Model architecture:\n{model}')
 

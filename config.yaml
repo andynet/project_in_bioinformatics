@@ -50,5 +50,21 @@ analysis_type: [
   "pca/ff_186-26/samples",
   "pca/ff_186-5/stages",
   "naive/pw_186-26/samples",
-  "naive/pw_186-5/stages"
+  "naive/pw_186-5/stages",
+
+  "naive/ff_57992-100-26/samples",
+  "naive/ff_57992-100-5/stages",
+
+  "naive/ff_9662-100-26/samples",
+  "naive/ff_9662-100-5/stages",
+  "pca/ff_9662-100-26/samples",
+  "pca/ff_9662-100-5/stages",
+
+  "naive/ff_186-100-26/samples",
+  "naive/ff_186-100-5/stages",
+  "pca/ff_186-100-26/samples",
+  "pca/ff_186-100-5/stages",
+  "naive/pw_186-100-26/samples",
+  "naive/pw_186-100-5/stages",
+
 ]
